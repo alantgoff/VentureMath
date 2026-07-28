@@ -46,6 +46,19 @@ describe('dilution', () => {
     const t = dilutionTrail(0.1, [{ mode: 'dilution', dilution: 0.2, poolPct: 0.05 }])
     expect(t.ownership).toBeCloseTo(0.075)
   })
+  it('ignores the fields belonging to the other pricing mode', () => {
+    // Switching a round to "round size" without filling in a post-money must
+    // not silently fall back to the dilution box the user can no longer see,
+    // and a stale pro-rata must not buy ownership back either.
+    const stale = { mode: 'round', roundSize: 0, post: 0, dilution: 0.2, proRata: 5e6 }
+    const t = dilutionTrail(0.1, [stale])
+    expect(t.ownership).toBeCloseTo(0.1, 9)
+    expect(t.followOn).toBe(0)
+
+    const back = dilutionTrail(0.1, [{ ...stale, mode: 'dilution', post: 100 * M, proRata: 2 * M }])
+    expect(back.ownership).toBeCloseTo(0.08, 9)
+    expect(back.followOn).toBe(0)
+  })
   it('buys ownership back with a pro-rata check', () => {
     const t = dilutionTrail(0.1, [{ mode: 'round', roundSize: 20 * M, post: 100 * M, proRata: 2 * M }])
     // 10% × 0.8 = 8%, plus $2M / $100M = 2% → 10%
@@ -144,6 +157,26 @@ describe('end to end', () => {
     near(s.rows[2].payout, 100 * M)
     expect(s.rows[2].moic).toBeCloseTo(25)
     expect(s.rows[2].irr).toBeCloseTo(Math.pow(25, 1 / 7) - 1, 6)
+  })
+  it('spells out the dilution walk with the real numbers in it', () => {
+    const d = computeStartup({ rounds: [1, 2].map((id) => ({ id, mode: 'dilution', dilution: 0.2 })) })
+    expect(d.ownFinalResult.f).toBe('10.0% × (1 − 20.0%) × (1 − 20.0%) = 6.4%')
+  })
+  it('brackets a pro-rata add-back so the line matches the arithmetic', () => {
+    const d = computeStartup({
+      rounds: [
+        { id: 1, mode: 'round', roundSize: 20 * M, post: 100 * M, proRata: 2 * M },
+        { id: 2, mode: 'dilution', dilution: 0.25 },
+      ],
+    })
+    // (10% × (1 − 20%) + 2%) × (1 − 25%) = 7.5%, not 10% × 0.8 + 2% × 0.75
+    expect(d.ownFinalResult.f).toBe('(10.0% × (1 − 20.0%) + 2.0%) × (1 − 25.0%) = 7.5%')
+    expect(d.ownFinal).toBeCloseTo(0.075, 9)
+  })
+  it('says so plainly when there are no further rounds', () => {
+    expect(computeStartup({ rounds: [] }).ownFinalResult.f).toBe(
+      '10.0% at entry, no further rounds = 10.0%',
+    )
   })
   it('carries dilution through to the exit table', () => {
     const d = computeStartup({

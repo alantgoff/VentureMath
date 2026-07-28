@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import NumberField, { Segmented, TextField, Toggle } from '../components/NumberField.jsx'
-import Result, { Section, Summary } from '../components/Result.jsx'
+import Result, { Formula, Section, Summary } from '../components/Result.jsx'
 import OutcomeTable from '../components/OutcomeTable.jsx'
 import { computeStartup, fundReturnerExit } from '../lib/startup.js'
 import { fmtUSD, fmtPct, fmtX, parseMoney } from '../lib/format.js'
@@ -11,7 +11,16 @@ const parseExits = (text) =>
     .map(parseMoney)
     .filter((n) => isFinite(n) && n >= 0)
 
-let nextId = 1000
+const blankRound = (id, n) => ({
+  id,
+  label: `Round ${n}`,
+  mode: 'dilution',
+  dilution: 0.2,
+  poolPct: 0,
+  proRata: 0,
+  post: 0,
+  roundSize: 0,
+})
 
 export default function StartupPage({ state, set, reset, fundSize }) {
   const exits = useMemo(() => parseExits(state.exitsText), [state.exitsText])
@@ -20,36 +29,32 @@ export default function StartupPage({ state, set, reset, fundSize }) {
 
   const setRound = (id, patch) =>
     set({ rounds: state.rounds.map((r) => (r.id === id ? { ...r, ...patch } : r)) })
+  // Ids come from the existing rows rather than a module counter, which would
+  // restart at the same number after a reload and collide with saved rounds.
   const addRound = () =>
     set({
       rounds: [
         ...state.rounds,
-        {
-          id: ++nextId,
-          label: `Round ${state.rounds.length + 1}`,
-          mode: 'dilution',
-          dilution: 0.2,
-          poolPct: 0,
-          proRata: 0,
-          post: 0,
-          roundSize: 0,
-        },
+        blankRound(Math.max(0, ...state.rounds.map((r) => r.id)) + 1, state.rounds.length + 1),
       ],
     })
   const dropRound = (id) => set({ rounds: state.rounds.filter((r) => r.id !== id) })
 
+  const wfParams = useMemo(
+    () => ({
+      invested: s.invested,
+      ownership: s.ownFinal,
+      prefMultiple: state.prefMultiple,
+      participating: state.participating,
+      capMultiple: state.participating && state.capped ? state.capMultiple : null,
+      seniorPref: state.seniorPref,
+      pariPref: state.pariPref,
+    }),
+    [s.invested, s.ownFinal, state],
+  )
   const returnerExit = useMemo(
-    () =>
-      fundReturnerExit(fundSize, s.ownFinal, {
-        invested: s.invested,
-        ownership: s.ownFinal,
-        prefMultiple: state.prefMultiple,
-        participating: state.participating,
-        capMultiple: state.participating && state.capped ? state.capMultiple : null,
-        seniorPref: state.seniorPref,
-        pariPref: state.pariPref,
-      }),
-    [fundSize, s.ownFinal, s.invested, state],
+    () => fundReturnerExit(fundSize, s.ownFinal, wfParams),
+    [fundSize, s.ownFinal, wfParams],
   )
 
   return (
@@ -102,11 +107,12 @@ export default function StartupPage({ state, set, reset, fundSize }) {
                 : fmtUSD(s.entry.check)
           }
           formula={s.entryResult.f}
+          rawValue={s.entryResult.v}
         />
         {state.roundSize > 0 && (
           <>
-            <Result label="Pre-money" value={fmtUSD(s.pre.v)} formula={s.pre.f} />
-            <Result label="Round sells" value={fmtPct(s.roundOwnership.v)} formula={s.roundOwnership.f} />
+            <Result label="Pre-money" r={s.pre} fmt={fmtUSD} />
+            <Result label="Round sells" r={s.roundOwnership} fmt={fmtPct} />
           </>
         )}
       </Section>
@@ -119,16 +125,14 @@ export default function StartupPage({ state, set, reset, fundSize }) {
         </div>
         <div className="toggles">
           <Toggle label="Participating" checked={state.participating} onChange={on('participating')} />
-          {state.participating && (
-            <Toggle label="Capped" checked={state.capped} onChange={on('capped')} />
-          )}
+          {state.participating && <Toggle label="Capped" checked={state.capped} onChange={on('capped')} />}
         </div>
         {state.participating && state.capped && (
           <div className="grid">
             <NumberField label="Cap" kind="num" value={state.capMultiple} onChange={on('capMultiple')} hint="× invested" />
           </div>
         )}
-        <Result label="Preference ahead of common" value={fmtUSD(s.prefStack.v)} formula={s.prefStack.f} />
+        <Result label="Preference ahead of common" r={s.prefStack} fmt={fmtUSD} />
       </Section>
 
       <Section title="Dilution">
@@ -139,18 +143,20 @@ export default function StartupPage({ state, set, reset, fundSize }) {
               <div className="round-head">
                 <input
                   className="round-label"
+                  aria-label="Round name"
                   value={round.label}
                   onChange={(e) => setRound(round.id, { label: e.target.value })}
                 />
                 <span className="round-own">
                   {fmtPct(step.before)} → <strong>{fmtPct(step.after)}</strong>
                 </span>
-                <button type="button" className="drop" onClick={() => dropRound(round.id)} aria-label="Remove round">
+                <button type="button" className="drop" onClick={() => dropRound(round.id)} aria-label={`Remove ${round.label}`}>
                   ×
                 </button>
               </div>
               <Segmented
                 label=""
+                ariaLabel={`${round.label} pricing`}
                 value={round.mode}
                 onChange={(v) => setRound(round.id, { mode: v })}
                 options={[
@@ -192,18 +198,18 @@ export default function StartupPage({ state, set, reset, fundSize }) {
                   onChange={(v) => setRound(round.id, { poolPct: v })}
                 />
               </div>
-              <div className="formula">
-                {step.sourceFormula ? `${step.sourceFormula} · ` : ''}
-                {step.formula}
-              </div>
+              {step.sourceFormula && (
+                <Formula label={`${round.label} dilution`} text={step.sourceFormula} value={step.dilution} />
+              )}
+              <Formula label={`${round.label} ownership`} text={step.formula} value={step.after} />
             </div>
           )
         })}
         <button type="button" className="add" onClick={addRound}>
           + Add a round
         </button>
-        <Result big label="Ownership at exit" value={fmtPct(s.ownFinal)} formula={s.ownFinalResult.f} />
-        <Result label="Total invested" value={fmtUSD(s.invested)} formula={s.investedResult.f} />
+        <Result big label="Ownership at exit" r={s.ownFinalResult} fmt={fmtPct} />
+        <Result label="Total invested" r={s.investedResult} fmt={fmtUSD} />
       </Section>
 
       <Section title="Outcomes">
@@ -226,17 +232,14 @@ export default function StartupPage({ state, set, reset, fundSize }) {
       </Section>
 
       <Section title="Key thresholds">
-        <Result big label="Breakeven exit" value={fmtUSD(s.breakeven.v)} formula={s.breakeven.f} />
-        <Result label="Pref → common crossover" value={fmtUSD(s.conversion.v)} formula={s.conversion.f} />
-        <Result
-          label={`Exit for ${fmtX(state.targetMoic)}`}
-          value={fmtUSD(s.targetExit.v)}
-          formula={s.targetExit.f}
-        />
+        <Result big label="Breakeven exit" r={s.breakeven} fmt={fmtUSD} />
+        <Result label="Pref → common crossover" r={s.conversion} fmt={fmtUSD} />
+        <Result label={`Exit for ${fmtX(state.targetMoic)}`} r={s.targetExit} fmt={fmtUSD} />
         <Result
           tone="warn"
           label="Exit that returns the fund"
           value={fmtUSD(returnerExit)}
+          rawValue={returnerExit}
           formula={`smallest exit paying you the ${fmtUSD(fundSize)} fund back at ${fmtPct(s.ownFinal)} → ${fmtUSD(returnerExit)}`}
         />
       </Section>

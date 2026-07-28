@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import FundPage from './pages/FundPage.jsx'
 import StartupPage from './pages/StartupPage.jsx'
+import CalcPage, { makeWork } from './pages/CalcPage.jsx'
+import { CalcContext } from './components/CalcContext.js'
 import { FUND_DEFAULTS } from './lib/fund.js'
 import { STARTUP_DEFAULTS } from './lib/startup.js'
 
 const KEY = 'vm.state.v1'
-const TABS = ['fund', 'startup']
+const CALC_DEFAULTS = { expr: '', tape: [] }
+const TABS = [
+  { id: 'fund', label: 'Fund', title: 'Fund', sub: 'fees · investable · fund returners' },
+  { id: 'startup', label: 'Company', title: 'Company', sub: 'entry · pref · dilution · exit' },
+  { id: 'calc', label: 'Calc', title: 'Calculator', sub: 'tap any formula to show the work' },
+]
 
 function load() {
   try {
@@ -15,20 +22,22 @@ function load() {
       // sensible value instead of undefined.
       fund: { ...FUND_DEFAULTS, ...(saved.fund || {}) },
       startup: { ...STARTUP_DEFAULTS, ...(saved.startup || {}) },
+      calc: { ...CALC_DEFAULTS, ...(saved.calc || {}) },
     }
   } catch {
-    return { fund: { ...FUND_DEFAULTS }, startup: { ...STARTUP_DEFAULTS } }
+    return { fund: { ...FUND_DEFAULTS }, startup: { ...STARTUP_DEFAULTS }, calc: { ...CALC_DEFAULTS } }
   }
 }
 
 function tabFromHash() {
   const t = window.location.hash.replace(/^#\/?/, '')
-  return TABS.includes(t) ? t : 'fund'
+  return TABS.some((x) => x.id === t) ? t : 'fund'
 }
 
 export default function App() {
   const [state, setState] = useState(load)
   const [tab, setTab] = useState(tabFromHash)
+  const [work, setWork] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(KEY, JSON.stringify(state))
@@ -40,52 +49,77 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
-  const go = (t) => {
+  const go = useCallback((t) => {
     window.location.hash = `#/${t}`
     setTab(t)
     window.scrollTo({ top: 0 })
-  }
+  }, [])
 
-  const setFund = useCallback((patch) => setState((s) => ({ ...s, fund: { ...s.fund, ...patch } })), [])
-  const setStartup = useCallback(
-    (patch) => setState((s) => ({ ...s, startup: { ...s.startup, ...patch } })),
-    [],
+  const slice = (name, defaults) => ({
+    set: (patch) => setState((s) => ({ ...s, [name]: { ...s[name], ...patch } })),
+    reset: () => setState((s) => ({ ...s, [name]: { ...defaults } })),
+  })
+
+  const fund = useMemo(() => slice('fund', FUND_DEFAULTS), [])
+  const startup = useMemo(() => slice('startup', STARTUP_DEFAULTS), [])
+  const calc = useMemo(() => slice('calc', CALC_DEFAULTS), [])
+
+  // Tapping a formula anywhere sends it here, then jumps to the calculator.
+  // `at` is a counter rather than a clock so repeat taps on the same formula
+  // still register as a fresh hand-off.
+  const send = useCallback(
+    (label, formula, value) => {
+      setWork((prev) => makeWork(label, formula, value, (prev?.at || 0) + 1))
+      go('calc')
+    },
+    [go],
   )
-  const resetFund = useCallback(() => setState((s) => ({ ...s, fund: { ...FUND_DEFAULTS } })), [])
-  const resetStartup = useCallback(
-    () => setState((s) => ({ ...s, startup: { ...STARTUP_DEFAULTS } })),
-    [],
-  )
+  const calcApi = useMemo(() => ({ send }), [send])
+
+  const active = TABS.find((t) => t.id === tab) || TABS[0]
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <h1>{tab === 'fund' ? 'Fund' : 'Company'}</h1>
-        <span className="sub">
-          {tab === 'fund' ? 'fees · investable · fund returners' : 'entry · pref · dilution · exit'}
-        </span>
-      </header>
+    <CalcContext.Provider value={calcApi}>
+      <div className="app">
+        <header className="topbar">
+          <h1>{active.title}</h1>
+          <span className="sub">{active.sub}</span>
+        </header>
 
-      <main>
-        {tab === 'fund' ? (
-          <FundPage state={state.fund} set={setFund} reset={resetFund} />
-        ) : (
-          <StartupPage
-            state={state.startup}
-            set={setStartup}
-            reset={resetStartup}
-            fundSize={state.fund.fundSize}
-          />
-        )}
-      </main>
+        <main>
+          {tab === 'fund' && <FundPage state={state.fund} set={fund.set} reset={fund.reset} />}
+          {tab === 'startup' && (
+            <StartupPage
+              state={state.startup}
+              set={startup.set}
+              reset={startup.reset}
+              fundSize={state.fund.fundSize}
+            />
+          )}
+          {tab === 'calc' && (
+            <CalcPage
+              state={state.calc}
+              set={calc.set}
+              work={work}
+              clearWork={() => setWork(null)}
+            />
+          )}
+        </main>
 
-      <nav className="tabs">
-        {TABS.map((t) => (
-          <button key={t} type="button" className={t === tab ? 'on' : ''} onClick={() => go(t)}>
-            {t === 'fund' ? 'Fund' : 'Company'}
-          </button>
-        ))}
-      </nav>
-    </div>
+        <nav className="tabs">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={t.id === tab ? 'on' : ''}
+              aria-current={t.id === tab ? 'page' : undefined}
+              onClick={() => go(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+    </CalcContext.Provider>
   )
 }

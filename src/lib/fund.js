@@ -67,11 +67,14 @@ export function computeFund(input) {
   const schedule = feeSchedule(i)
   const totalFees = schedule.reduce((s, x) => s + x.amount, 0)
   const feePct = F > 0 ? totalFees / F : NaN
+  // Split the stepped-down schedule into its two halves so the line stays a
+  // single expression the calculator can replay.
+  const periodYears = Math.max(0, Math.min(Math.round(investPeriod), Math.round(L)))
+  const taperFees = schedule.filter((x) => x.year > periodYears).reduce((s, x) => s + x.amount, 0)
   const feeFormula =
     feeStructure === 'flat'
       ? `${fmtPct(feeRate)} × ${fmtUSD(F)} × ${L} yrs = ${fmtUSD(totalFees)}`
-      : `${fmtPct(feeRate)} × ${fmtUSD(F)} for ${Math.min(investPeriod, L)} yrs, ` +
-        `then tapering ${fmtPct(i.stepDown)}/yr = ${fmtUSD(totalFees)}`
+      : `${fmtPct(feeRate)} × ${fmtUSD(F)} × ${periodYears} yrs + ${fmtUSD(taperFees)} of tapered fees = ${fmtUSD(totalFees)}`
 
   const totalExpenses = annualExpenses * L
   const recycled = recyclingPct * F
@@ -80,7 +83,13 @@ export function computeFund(input) {
 
   // Whole-fund (European) waterfall, no hurdle:
   //   LP net N = D − c(D − F);  set N = nF  ⇒  D = F(n − c)/(1 − c)
-  const D = c < 1 ? (F * (n - c)) / (1 - c) : NaN
+  // Below 1x there is no profit to take carry on, so gross and net are the
+  // same and the inversion above would overstate what has to come back.
+  const D = n < 1 ? F * n : c < 1 ? (F * (n - c)) / (1 - c) : NaN
+  const dFormula =
+    n < 1
+      ? `below 1x there is no carry, so D = nF = ${fmtX(n)} × ${fmtUSD(F)} = ${fmtUSD(D)}`
+      : `D = F(n − c) ÷ (1 − c) = ${fmtUSD(F)} × (${fmtX(n)} − ${fmtPct(c)}) ÷ ${(1 - c).toFixed(2)} = ${fmtUSD(D)}`
   const carryDollars = Math.max(0, c * (D - F))
   const lpProceeds = D - carryDollars
   const grossFund = F > 0 ? D / F : NaN
@@ -108,7 +117,10 @@ export function computeFund(input) {
     schedule,
     fees: r(totalFees, feeFormula),
     feePct: r(feePct, `${fmtUSD(totalFees)} ÷ ${fmtUSD(F)} = ${fmtPct(feePct)} of the fund`),
-    expenses: r(totalExpenses, `${fmtUSD(annualExpenses)}/yr × ${L} yrs = ${fmtUSD(totalExpenses)}`),
+    expenses: r(
+      totalExpenses,
+      `${fmtUSD(annualExpenses)} per yr × ${L} yrs = ${fmtUSD(totalExpenses)}`,
+    ),
     recycled: r(recycled, `${fmtPct(recyclingPct)} × ${fmtUSD(F)} = ${fmtUSD(recycled)}`),
     investable: r(
       investable,
@@ -126,10 +138,7 @@ export function computeFund(input) {
       `${fmtUSD(F)} ÷ ${fmtUSD(investable)} = ${fmtX(breakEvenInvested)} on invested capital just to return the fund`,
     ),
 
-    distributions: r(
-      D,
-      `D = F(n − c) ÷ (1 − c) = ${fmtUSD(F)} × (${fmtX(n)} − ${fmtPct(c)}) ÷ ${(1 - c).toFixed(2)} = ${fmtUSD(D)}`,
-    ),
+    distributions: r(D, dFormula),
     grossFund: r(grossFund, `${fmtUSD(D)} ÷ ${fmtUSD(F)} = ${fmtX(grossFund)} gross on fund size`),
     grossInvested: r(
       grossInvested,

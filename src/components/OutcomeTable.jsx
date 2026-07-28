@@ -1,4 +1,5 @@
 import { fmtUSD, fmtX, fmtIRR } from '../lib/format.js'
+import { Formula } from './Result.jsx'
 
 const BRANCH_LABEL = {
   pref: 'pref',
@@ -32,7 +33,14 @@ export default function OutcomeTable({ rows, years }) {
               </td>
             </tr>
             <tr className="formula-row">
-              <td colSpan={5}>{row.formula}</td>
+              <td colSpan={5}>
+                <Formula
+                  label={`${fmtUSD(row.exit)} exit`}
+                  text={row.formula}
+                  value={row.payout}
+                  className="formula-cell"
+                />
+              </td>
             </tr>
           </tbody>
         ))}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { computeFund, FUND_DEFAULTS } from './fund.js'
-import { parseMoney, parsePct, parseNum, fmtUSD, fmtX, fmtPct } from './format.js'
+import { parseMoney, parsePct, parseNum, fmtUSD, fmtX, fmtPct, fmtCount } from './format.js'
 
 const M = 1e6
 const B = 1e9
@@ -34,6 +34,12 @@ describe('formatting', () => {
     expect(fmtUSD(68 * M)).toBe('$68.0M')
     expect(fmtX(3.5)).toBe('3.5x')
     expect(fmtPct(0.0512)).toBe('5.12%')
+  })
+  it('keeps a decimal on counts below 100, so 41.5 does not read as 42', () => {
+    expect(fmtCount(41.5)).toBe('41.5')
+    expect(fmtCount(3.5)).toBe('3.5')
+    expect(fmtCount(12)).toBe('12')
+    expect(fmtCount(140.4)).toBe('140')
   })
 })
 
@@ -80,6 +86,15 @@ describe('gross needed for a 3x net', () => {
   })
   it('is an 11.6% net IRR over 10 years', () => {
     expect(f.netIRR.v).toBeCloseTo(0.1161, 3)
+  })
+  it('takes no carry below 1x, where there is no profit to take it on', () => {
+    // The n ≥ 1 inversion would call for $250M of distributions to hand LPs
+    // 0.5x, which is wrong — nothing is carried until the fund is whole.
+    const g = computeFund({ targetNet: 0.5 })
+    near(g.distributions.v, 200 * M)
+    near(g.carryDollars.v, 0)
+    near(g.lpProceeds.v, 200 * M)
+    expect(computeFund({ targetNet: 1 }).distributions.v).toBeCloseTo(400 * M, 0)
   })
   it('holds at a different carry', () => {
     const g = computeFund({ carry: 0.3, targetNet: 3 })

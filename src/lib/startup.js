@@ -61,14 +61,19 @@ export function dilutionTrail(entryOwnership, rounds) {
   let followOn = 0
   const steps = rounds.map((round) => {
     const before = o
-    const base =
-      round.mode === 'round' && round.post > 0 ? round.roundSize / round.post : round.dilution || 0
+    // Each mode reads only its own fields. A round priced by size over
+    // post-money must not fall back to the dilution box the user cannot
+    // currently see, and a pro-rata check only counts when there is a
+    // post-money to price it at.
+    const priced = round.mode === 'round'
+    const base = priced ? (round.post > 0 ? round.roundSize / round.post : 0) : round.dilution || 0
     const d = Math.max(0, Math.min(1, base + (round.poolPct || 0)))
-    const addBack = round.proRata > 0 && round.post > 0 ? round.proRata / round.post : 0
-    followOn += round.proRata > 0 && round.post > 0 ? round.proRata : 0
+    const proRata = priced && round.proRata > 0 && round.post > 0 ? round.proRata : 0
+    const addBack = proRata > 0 ? proRata / round.post : 0
+    followOn += proRata
     o = before * (1 - d) + addBack
     const parts = [`${fmtPct(before)} × (1 − ${fmtPct(d)})`]
-    if (addBack > 0) parts.push(`+ ${fmtUSD(round.proRata)} ÷ ${fmtUSD(round.post)}`)
+    if (addBack > 0) parts.push(`+ ${fmtUSD(proRata)} ÷ ${fmtUSD(round.post)}`)
     return {
       label: round.label,
       before,
@@ -77,7 +82,7 @@ export function dilutionTrail(entryOwnership, rounds) {
       after: o,
       formula: `${parts.join(' ')} = ${fmtPct(o)}`,
       sourceFormula:
-        round.mode === 'round' && round.post > 0
+        priced && round.post > 0
           ? `${fmtUSD(round.roundSize)} ÷ ${fmtUSD(round.post)} = ${fmtPct(base)} dilution`
           : null,
     }
@@ -144,6 +149,22 @@ export function waterfallAt(exit, p) {
     branch: 'participating',
     formula: `${fmtUSD(prefPaid)} pref + ${fmtPct(ownership)} × ${fmtUSD(residual)} = ${fmtUSD(full)}`,
   }
+}
+
+/** The whole dilution walk on one line, with every round substituted in. */
+function ownershipTrailFormula(entryOwnership, trail, ownFinal) {
+  if (!trail.steps.length) {
+    return `${fmtPct(entryOwnership)} at entry, no further rounds = ${fmtPct(ownFinal)}`
+  }
+  // Each pro-rata add-back has to be bracketed before the next round's
+  // dilution applies to it, otherwise the line reads as a different sum
+  // than the one actually computed.
+  let expr = fmtPct(entryOwnership)
+  for (const step of trail.steps) {
+    expr += ` × (1 − ${fmtPct(step.dilution)})`
+    if (step.addBack > 0) expr = `(${expr} + ${fmtPct(step.addBack)})`
+  }
+  return `${expr} = ${fmtPct(ownFinal)}`
 }
 
 export function computeStartup(input) {
@@ -218,10 +239,7 @@ export function computeStartup(input) {
       entry.post > 0 ? i.roundSize / entry.post : NaN,
       `${fmtUSD(i.roundSize)} ÷ ${fmtUSD(entry.post)} = ${fmtPct(entry.post > 0 ? i.roundSize / entry.post : NaN)} sold in the round`,
     ),
-    ownFinalResult: r(
-      ownFinal,
-      `${fmtPct(entry.ownership)} × ${i.rounds.map((_, n) => `(1 − d${n + 1})`).join(' ')} = ${fmtPct(ownFinal)}`,
-    ),
+    ownFinalResult: r(ownFinal, ownershipTrailFormula(entry.ownership, trail, ownFinal)),
     investedResult: r(
       invested,
       trail.followOn > 0

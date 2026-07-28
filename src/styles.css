@@ -10,6 +10,9 @@
   --warn-dim: rgba(242, 181, 68, 0.09);
   --good: #4ade80;
   --radius: 12px;
+  /* The header is a fixed height so the summary bar can stick directly
+     beneath it. Both read this, so they cannot drift apart. */
+  --topbar-h: 49px;
   color-scheme: dark;
 }
 
@@ -62,6 +65,7 @@ body {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top));
   padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
@@ -71,6 +75,7 @@ body {
 .topbar h1 {
   margin: 0;
   font-size: 20px;
+  line-height: 28px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -83,7 +88,7 @@ body {
 
 .summary {
   position: sticky;
-  top: calc(42px + env(safe-area-inset-top));
+  top: calc(var(--topbar-h) + env(safe-area-inset-top));
   z-index: 15;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -125,7 +130,7 @@ body {
   right: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--bg) 92%, transparent);
@@ -398,12 +403,30 @@ body {
 }
 
 .formula {
+  display: block;
+  width: 100%;
   margin-top: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11.5px;
   line-height: 1.5;
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+/* A tappable formula gets a dotted underline — enough to read as pressable
+   without turning every result into a link. */
+.formula-tap {
+  cursor: pointer;
+  text-decoration: underline dotted color-mix(in srgb, var(--muted) 55%, transparent);
+  text-underline-offset: 3px;
+}
+
+.formula-tap:active {
+  color: var(--accent);
 }
 
 /* ---------- tables ---------- */
@@ -464,6 +487,15 @@ body {
 .formula-row td {
   padding: 0 8px 9px;
   white-space: normal;
+}
+
+.formula-cell {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11.5px;
   line-height: 1.45;
@@ -584,4 +616,157 @@ body {
 .tabs button:active,
 .segmented button:active {
   opacity: 0.7;
+}
+
+/* ---------- calculator ---------- */
+
+.calc-display {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 104px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.calc-expr {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.calc-hint {
+  opacity: 0.6;
+}
+
+.calc-value {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.key {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  /* Square-ish and thumb-sized whatever the screen width. */
+  aspect-ratio: 1 / 1;
+  min-height: 48px;
+}
+
+.key-alt {
+  background: var(--bg-raised);
+  color: var(--muted);
+  font-size: 17px;
+}
+
+.key-op {
+  background: var(--bg-raised);
+  color: var(--accent);
+}
+
+.key-eq {
+  grid-column: span 2;
+  aspect-ratio: auto;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.key:active {
+  opacity: 0.6;
+}
+
+.calc-label {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calc-source {
+  margin: 0 0 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.calc-steps {
+  margin: 0 0 12px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calc-steps li {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.calc-steps li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tape {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tape li + li {
+  border-top: 1px dotted var(--line);
+}
+
+.tape button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  font: inherit;
+  text-align: left;
+}
+
+.tape-expr {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.tape-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
 }

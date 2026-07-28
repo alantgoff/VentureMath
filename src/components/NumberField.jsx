@@ -87,11 +87,11 @@ export function TextField({ label, value, onChange, hint }) {
   )
 }
 
-export function Segmented({ label, value, options, onChange }) {
+export function Segmented({ label, value, options, onChange, ariaLabel }) {
   return (
     <div className="field field-wide">
       <span className="field-label">{label}</span>
-      <div className="segmented" role="group">
+      <div className="segmented" role="group" aria-label={ariaLabel || label || undefined}>
         {options.map((o) => (
           <button
             key={o.value}

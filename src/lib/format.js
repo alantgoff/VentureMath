@@ -65,14 +65,24 @@ function dp(v) {
   return a >= 100 ? 0 : a >= 10 ? 1 : 2
 }
 
+function withUnit(n, prefix) {
+  const neg = n < 0
+  const [v, unit] = scaled(Math.abs(n))
+  return `${neg ? '−' : ''}${prefix}${trim(v.toFixed(dp(v)))}${unit}`
+}
+
 /** $412K, $68.0M, $1.4B — 3 significant figures, sign preserved. */
 export function fmtUSD(n) {
   if (n == null || !isFinite(n)) return '—'
   if (n === 0) return '$0'
-  const neg = n < 0
-  const [v, unit] = scaled(Math.abs(n))
-  const body = trim(v.toFixed(dp(v)))
-  return `${neg ? '−' : ''}$${body}${unit}`
+  return withUnit(n, '$')
+}
+
+/** The same scaling without the currency marker: 412K, 68.0M, 1.4B. */
+export function fmtScaled(n) {
+  if (n == null || !isFinite(n)) return '—'
+  if (n === 0) return '0'
+  return withUnit(n, '')
 }
 
 /** 3.5x, 11.6x, 0.42x */
@@ -96,10 +106,13 @@ export function fmtIRR(n) {
   return `${(n * 100).toFixed(1)}%`
 }
 
-/** Whole counts, but keep a decimal when it matters (3.5 fund returners). */
+/**
+ * Counts keep a decimal below 100 — a 41.5-company portfolio should not
+ * print as 42 next to the division that produced it.
+ */
 export function fmtCount(n) {
   if (n == null || !isFinite(n)) return '—'
-  return Math.abs(n) >= 20 ? Math.round(n).toString() : trim(n.toFixed(1))
+  return Math.abs(n) >= 100 ? Math.round(n).toString() : String(+n.toFixed(1))
 }
 
 /** MOIC^(1/years) − 1. A total loss is −100%, not NaN. */

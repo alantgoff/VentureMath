@@ -2,9 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- No maximum-scale: inputs are already 17px so iOS will not zoom on
+         focus, and blocking pinch-zoom outright hurts anyone who needs it. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
+      name="description"
+      content="Fund and company math for venture case interviews, with the formula shown under every number."
     />
     <meta name="theme-color" content="#0b0d10" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
