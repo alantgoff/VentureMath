@@ -1,0 +1,587 @@
+:root {
+  --bg: #0b0d10;
+  --bg-raised: #14181d;
+  --bg-input: #1b2027;
+  --line: #262c34;
+  --text: #e8ecf1;
+  --muted: #8b95a3;
+  --accent: #6ea8fe;
+  --warn: #f2b544;
+  --warn-dim: rgba(242, 181, 68, 0.09);
+  --good: #4ade80;
+  --radius: 12px;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7f9;
+    --bg-raised: #ffffff;
+    --bg-input: #eef1f5;
+    --line: #dfe4ea;
+    --text: #10151b;
+    --muted: #5f6b7a;
+    --accent: #1d5fd0;
+    --warn: #a86a00;
+    --warn-dim: rgba(168, 106, 0, 0.08);
+    --good: #147a3d;
+    color-scheme: light;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom));
+}
+
+/* ---------- chrome ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.topbar .sub {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.summary {
+  position: sticky;
+  top: calc(42px + env(safe-area-inset-top));
+  z-index: 15;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.summary-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  background: var(--bg-raised);
+  min-width: 0;
+}
+
+.summary-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary-value {
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.tabs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+}
+
+.tabs button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 12px;
+  border-radius: var(--radius);
+}
+
+.tabs button.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ---------- sections ---------- */
+
+.section {
+  border-bottom: 1px solid var(--line);
+}
+
+.section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.section > summary svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.15s ease;
+}
+
+.section[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+.section-body {
+  padding: 0 16px 16px;
+}
+
+.note {
+  margin: 0;
+  padding: 0 16px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ---------- inputs ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.field-label {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.field-label em {
+  font-style: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.field-input {
+  position: relative;
+  display: block;
+}
+
+.field-input input {
+  width: 100%;
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+  color: var(--text);
+  /* 17px keeps iOS Safari from zooming the viewport on focus. */
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+}
+
+.field-input input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.affix {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  font-style: normal;
+  font-size: 15px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.affix-end {
+  left: auto;
+  right: 12px;
+}
+
+.field-input:has(.affix:not(.affix-end)) input {
+  padding-left: 26px;
+}
+
+.field-input:has(.affix-end) input {
+  padding-right: 28px;
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-input);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.segmented button {
+  flex: 1;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 4px;
+  border-radius: 9px;
+  min-width: 0;
+}
+
+.segmented button.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.toggles {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-input);
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 999px;
+}
+
+.toggle-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.toggle.on {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.toggle.on .toggle-dot {
+  background: var(--accent);
+}
+
+/* ---------- results ---------- */
+
+.result {
+  padding: 9px 0;
+  border-bottom: 1px dotted var(--line);
+}
+
+.result:last-child {
+  border-bottom: 0;
+}
+
+.result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.result-label {
+  font-size: 14px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.result-value {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.result-big .result-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.result-big .result-value {
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.tone-warn .result-value {
+  color: var(--warn);
+}
+
+.formula {
+  margin-top: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- tables ---------- */
+
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 4px -4px 0;
+  padding: 0 4px;
+}
+
+.outcomes {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.outcomes th,
+.outcomes td {
+  padding: 9px 8px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.outcomes thead th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.outcomes tbody th {
+  font-weight: 600;
+}
+
+.outcomes .num {
+  text-align: right;
+}
+
+.outcomes .strong {
+  font-weight: 700;
+}
+
+.outcomes tbody.row-pref {
+  background: var(--warn-dim);
+}
+
+/* Each outcome is a two-row group: the numbers, then the work behind them. */
+.outcomes tbody tr:first-child th,
+.outcomes tbody tr:first-child td {
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+
+.formula-row td {
+  padding: 0 8px 9px;
+  white-space: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--bg-input);
+  color: var(--muted);
+}
+
+.badge-common {
+  background: color-mix(in srgb, var(--good) 18%, transparent);
+  color: var(--good);
+}
+
+.badge-pref,
+.badge-capped,
+.badge-participating {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+}
+
+/* ---------- rounds ---------- */
+
+.round {
+  margin-bottom: 12px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.round-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.round-label {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 2px 0;
+}
+
+.round-label:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+
+.round-own {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.round-own strong {
+  color: var(--text);
+}
+
+.round .segmented {
+  margin-bottom: 10px;
+}
+
+.round .field-label:empty {
+  display: none;
+}
+
+.drop {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.add,
+.reset {
+  display: block;
+  width: 100%;
+  appearance: none;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 13px;
+  border-radius: var(--radius);
+}
+
+.reset {
+  width: calc(100% - 32px);
+  margin: 16px;
+  border-style: solid;
+}
+
+.add:active,
+.reset:active,
+.tabs button:active,
+.segmented button:active {
+  opacity: 0.7;
+}
