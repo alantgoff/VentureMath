@@ -71,6 +71,16 @@ functions that return `{ v, f }` — the value and the formula string that
 produced it. The React layer only renders; it never computes. If you change a
 number, change it there and the displayed formula follows.
 
-Pushing to `main` builds and deploys to GitHub Pages via
-`.github/workflows/deploy.yml`. Pages must be set to **Source: GitHub Actions**
-in the repository settings.
+## Deploying
+
+`.github/workflows/deploy.yml` runs the tests, builds, and publishes to GitHub
+Pages on every push to `main` (and, for now, to the feature branch). Two
+one-time settings are needed before the deploy step can succeed:
+
+1. **Settings → Pages → Source: GitHub Actions.** The workflow token is not
+   allowed to enable Pages itself, so this has to be clicked once.
+2. **The repository must be public**, unless the account is on GitHub Pro or
+   Team — Pages does not serve private repositories on the free plan.
+
+Until then the build and test steps still pass and the deploy step is the only
+thing that fails.
