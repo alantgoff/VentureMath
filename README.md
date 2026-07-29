@@ -1,9 +1,8 @@
 # VentureMath
 
-A phone-first calculator for venture case interviews. Three pages — **Fund**,
-**Company** and **Calc** — that recompute on every keystroke and show the
-substituted formula under every number, so you can read your reasoning out
-loud instead of reconstructing it.
+Useful venture math calculator deployable to your phone.
+Three pages — **Fund**,
+**Company** and **Calc** — that recompute on every keystroke.
 
 Live at **https://alantgoff.github.io/VentureMath/**
 
@@ -46,11 +45,6 @@ Defaults to $4M for 10% on a $40M post, 1x non-participating.
 A plain arithmetic keypad with K/M/B and % keys, a running result as you type,
 and a tape of the last dozen lines you kept.
 
-Its real job is **show my work**. Every formula line on the Fund and Company
-pages is tappable — including the ones under each row of the exit table. Tap
-one and the Calc page opens with that formula broken into one step per
-operation, and its arithmetic already loaded into the keypad so you can change
-a number and watch the answer move:
 
 ```
 Ownership at exit
