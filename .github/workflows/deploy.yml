@@ -30,13 +30,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      # Provisions the Pages site on the first run so there is no manual
-      # settings step. If this ever errors with "Resource not accessible by
-      # integration", set Settings → Pages → Source: GitHub Actions by hand
-      # and it will pass from then on.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+      # No configure-pages step: its only job is to hand back a base_url, and
+      # the base path is pinned in vite.config.js instead. Leaving it out also
+      # keeps the build off the Pages management API, which the workflow token
+      # is not allowed to read here.
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
